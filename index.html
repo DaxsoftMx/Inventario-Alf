@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clínica Alf — Inventario</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --amber: #D4941A; --amber-l: #FDF3DC; --amber-d: #7A2C00;
+  --amber-m: #B45014; --cream: #F9F0E3; --terra: #B45014;
+  --brown: #782800; --warn: #C87814; --danger: #8C2800;
+}
+body { background: var(--cream); font-family: system-ui, -apple-system, sans-serif; }
+.app { max-width:420px; margin:0 auto; background:var(--cream); min-height:100vh; display:flex; flex-direction:column; }
+
+.topbar { background:var(--brown); padding:10px 16px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+.topbar-left { display:flex; align-items:center; gap:10px; }
+.logo-wrap { width:40px; height:40px; border-radius:10px; overflow:hidden; flex-shrink:0; background:#FDF3DC; border:1.5px solid rgba(255,255,255,0.2); }
+.logo-wrap img { width:40px; height:40px; object-fit:cover; }
+.topbar-title { font-size:16px; font-weight:600; color:#fff; }
+.topbar-sub { font-size:11px; color:rgba(255,255,255,0.7); margin-top:1px; }
+.topbar-actions { display:flex; gap:8px; }
+.icon-btn { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); border-radius:8px; width:34px; height:34px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#fff; font-size:17px; }
+.icon-btn:hover { background:rgba(255,255,255,0.25); }
+.icon-btn.export-btn { width:auto; padding:0 10px; gap:5px; font-size:13px; font-weight:500; }
+
+.search-bar { padding:10px 16px; background:#fff; border-bottom:1px solid #EDD9BE; display:flex; gap:8px; align-items:center; }
+.search-wrap { flex:1; position:relative; }
+.search-wrap i.si { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#B45014; font-size:16px; pointer-events:none; }
+.search-wrap input { width:100%; padding:8px 10px 8px 34px; border:1px solid #EDD9BE; border-radius:8px; background:#FDF3DC; color:#4A1A00; font-size:14px; }
+.search-wrap input::placeholder { color:#C49060; }
+.search-wrap input:focus { outline:none; border-color:var(--amber); }
+.filter-btn { background:#FDF3DC; border:1px solid #EDD9BE; border-radius:8px; padding:8px 10px; cursor:pointer; color:#B45014; font-size:13px; display:flex; align-items:center; gap:4px; white-space:nowrap; font-weight:500; }
+.filter-btn.active { background:var(--brown); border-color:var(--brown); color:#fff; }
+
+.cats { display:flex; gap:6px; padding:10px 16px; overflow-x:auto; scrollbar-width:none; background:#fff; border-bottom:1px solid #EDD9BE; }
+.cats::-webkit-scrollbar { display:none; }
+.cat-pill { flex-shrink:0; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:500; cursor:pointer; border:1px solid #EDD9BE; background:#FDF3DC; color:#8C4010; }
+.cat-pill.active { background:var(--amber-m); border-color:var(--amber-d); color:#fff; }
+
+.stats-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; padding:12px 16px; }
+.stat-card { background:#fff; border:1px solid #EDD9BE; border-radius:10px; padding:10px 12px; text-align:center; }
+.stat-num { font-size:20px; font-weight:600; color:var(--amber-m); }
+.stat-lbl { font-size:11px; color:#A06030; margin-top:2px; }
+
+.list { padding:0 16px 80px; display:flex; flex-direction:column; gap:10px; }
+.prod-card { background:#fff; border:1px solid #EDD9BE; border-radius:12px; overflow:hidden; display:flex; cursor:pointer; transition:border-color .15s, box-shadow .15s; }
+.prod-card:hover { border-color:var(--amber); box-shadow:0 2px 8px rgba(180,80,20,.1); }
+.prod-img { width:80px; height:80px; flex-shrink:0; background:var(--amber-l); display:flex; align-items:center; justify-content:center; color:var(--amber-m); font-size:26px; }
+.prod-img img { width:80px; height:80px; object-fit:cover; }
+.prod-info { flex:1; padding:10px 12px; min-width:0; }
+.prod-name { font-size:14px; font-weight:600; color:#3A1400; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.prod-brand { font-size:12px; color:#A06030; margin-top:2px; }
+.prod-barcode { font-size:11px; color:#C49060; margin-top:1px; font-family:monospace; }
+.prod-prices { display:flex; gap:10px; margin-top:6px; align-items:center; }
+.price-med { font-size:12px; color:var(--amber-m); font-weight:500; }
+.price-pub { font-size:13px; color:#3A1400; font-weight:600; }
+.price-sep { width:1px; height:12px; background:#EDD9BE; }
+.prod-meta { display:flex; align-items:center; justify-content:space-between; margin-top:4px; }
+.cat-tag { font-size:10px; padding:2px 7px; border-radius:10px; background:var(--amber-l); color:var(--brown); font-weight:600; border:1px solid #EDD9BE; }
+.stock-ok { color:#3B6D11; font-size:11px; font-weight:600; }
+.stock-low { color:#C87814; font-size:11px; font-weight:600; }
+.stock-out { color:#8C2800; font-size:11px; font-weight:600; }
+
+.fab { position:fixed; bottom:24px; right:50%; transform:translateX(50%); background:var(--brown); color:#fff; border:none; border-radius:28px; padding:13px 22px; font-size:15px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; z-index:200; max-width:220px; box-shadow:0 4px 16px rgba(120,40,0,.35); }
+.fab:active { opacity:.9; transform:translateX(50%) scale(.97); }
+
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(60,20,0,.55); z-index:300; overflow-y:auto; }
+.modal-overlay.open { display:block; }
+.modal { background:#fff; border-radius:16px 16px 0 0; padding:20px 16px 40px; margin-top:60px; min-height:calc(100vh - 60px); }
+.modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.modal-title { font-size:17px; font-weight:600; color:#3A1400; }
+.close-btn { background:var(--amber-l); border:1px solid #EDD9BE; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--brown); font-size:16px; }
+
+.form-group { margin-bottom:14px; }
+.form-label { font-size:13px; color:#8C4010; margin-bottom:5px; display:block; font-weight:500; }
+.form-group input, .form-group select { width:100%; border:1px solid #EDD9BE; border-radius:8px; padding:9px 12px; background:#FFFAF4; color:#3A1400; font-size:14px; }
+.form-group input:focus, .form-group select:focus { outline:none; border-color:var(--amber); background:#fff; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.barcode-row { display:flex; gap:8px; align-items:flex-end; }
+.barcode-row .form-group { flex:1; margin:0; }
+.scan-inline-btn { background:var(--amber-l); border:1px solid var(--amber); border-radius:8px; padding:9px 12px; cursor:pointer; color:var(--brown); font-size:13px; display:flex; align-items:center; gap:5px; white-space:nowrap; font-weight:600; height:38px; flex-shrink:0; }
+
+.img-upload { border:2px dashed #EDD9BE; border-radius:10px; padding:20px; text-align:center; cursor:pointer; background:#FFFAF4; color:#C49060; font-size:13px; position:relative; }
+.img-upload:hover { border-color:var(--amber); color:var(--amber-m); }
+.img-upload i { font-size:28px; display:block; margin-bottom:6px; }
+.img-upload input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+.img-preview { width:100%; height:120px; object-fit:cover; border-radius:8px; margin-bottom:8px; display:none; }
+
+.save-btn { width:100%; background:var(--brown); color:#fff; border:none; border-radius:10px; padding:13px; font-size:15px; font-weight:600; cursor:pointer; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:8px; }
+.secondary-btn { width:100%; background:var(--amber-l); color:#3A1400; border:1px solid #EDD9BE; border-radius:10px; padding:11px; font-size:14px; font-weight:500; cursor:pointer; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:6px; }
+.delete-btn { width:100%; background:#FFF0EC; color:#8C2800; border:1px solid #F5B8A0; border-radius:10px; padding:11px; font-size:14px; font-weight:500; cursor:pointer; margin-top:8px; display:flex; align-items:center; justify-content:center; gap:6px; }
+
+.detail-header { text-align:center; padding:0 0 16px; border-bottom:1px solid #EDD9BE; margin-bottom:16px; }
+.detail-img { width:120px; height:120px; object-fit:cover; border-radius:12px; margin:0 auto 12px; display:block; }
+.detail-img-ph { width:120px; height:120px; border-radius:12px; margin:0 auto 12px; display:flex; align-items:center; justify-content:center; background:var(--amber-l); color:var(--amber-m); font-size:40px; }
+.detail-rows { display:flex; flex-direction:column; gap:10px; }
+.detail-row { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:#FFFAF4; border:1px solid #EDD9BE; border-radius:10px; }
+.detail-row-label { font-size:13px; color:#A06030; display:flex; align-items:center; gap:5px; }
+.detail-row-val { font-size:14px; font-weight:600; color:#3A1400; }
+.price-hl { color:var(--amber-m); font-size:16px; }
+.empty-state { text-align:center; padding:48px 16px; color:#C49060; }
+.empty-state i { font-size:48px; display:block; margin-bottom:12px; }
+
+.scanner-modal { background:#fff; border-radius:16px 16px 0 0; padding:20px 16px 40px; margin-top:60px; min-height:calc(100vh - 60px); }
+#scannerVideo { width:100%; border-radius:12px; background:#000; display:block; max-height:260px; object-fit:cover; }
+.scan-frame { position:relative; margin-bottom:12px; }
+.scan-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+.scan-crosshair { width:200px; height:120px; border:2px solid var(--amber); border-radius:8px; box-shadow:0 0 0 9999px rgba(60,20,0,.45); }
+.scan-status { text-align:center; font-size:13px; color:#A06030; margin-top:8px; min-height:20px; }
+.scan-found { background:var(--amber-l); border:1px solid var(--amber); border-radius:12px; padding:16px; margin-top:12px; }
+.scan-found-name { font-size:15px; font-weight:600; color:var(--brown); }
+.scan-found-meta { font-size:13px; color:var(--amber-m); margin-top:3px; }
+
+.toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--brown); color:#FDF3DC; padding:10px 18px; border-radius:20px; font-size:13px; z-index:999; opacity:0; transition:opacity .2s; pointer-events:none; white-space:nowrap; }
+.toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo-wrap">
+        <img src="data:image/jpeg;base64,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" alt="Logo Clínica Alf">
+      </div>
+      <div>
+        <div class="topbar-title">Clínica Alf</div>
+        <div class="topbar-sub">Inventario de productos</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="openScanner()" aria-label="Escanear código de barras">
+        <i class="ti ti-scan"></i>
+      </button>
+      <button class="icon-btn export-btn" onclick="exportExcel()">
+        <i class="ti ti-file-spreadsheet"></i> Excel
+      </button>
+    </div>
+  </div>
+
+  <div class="search-bar">
+    <div class="search-wrap">
+      <i class="ti ti-search si"></i>
+      <input type="text" id="searchInput" placeholder="Buscar producto, marca, código...">
+    </div>
+    <button class="filter-btn" id="lowStockBtn" onclick="toggleLowStock()">
+      <i class="ti ti-alert-triangle"></i> Stock bajo
+    </button>
+  </div>
+
+  <div class="cats" id="catList"></div>
+  <div class="stats-row" id="statsRow"></div>
+  <div class="list" id="productList"></div>
+  <button class="fab" onclick="openForm()"><i class="ti ti-plus"></i> Agregar producto</button>
+</div>
+
+<!-- Form modal -->
+<div class="modal-overlay" id="formModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="formTitle">Nuevo producto</span>
+      <button class="close-btn" onclick="closeModal('formModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Foto del producto</label>
+      <div class="img-upload">
+        <img id="imgPreview" class="img-preview">
+        <i class="ti ti-camera" id="imgIcon"></i>
+        <span id="imgLabel">Toca para agregar foto</span>
+        <input type="file" accept="image/*" id="imgInput" onchange="handleImg(this)">
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Nombre del producto *</label><input type="text" id="fName" placeholder="Ej. Frontline Plus"></div>
+    <div class="form-group"><label class="form-label">Marca</label><input type="text" id="fBrand" placeholder="Ej. Merial"></div>
+    <div class="form-group">
+      <label class="form-label">Código de barras</label>
+      <div class="barcode-row">
+        <div class="form-group"><input type="text" id="fBarcode" placeholder="Ej. 7501031311309" style="font-family:monospace"></div>
+        <button class="scan-inline-btn" onclick="openScannerForForm()"><i class="ti ti-scan"></i> Escanear</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Categoría</label>
+      <select id="fCat">
+        <option value="">Seleccionar...</option>
+        <option>Antipulgas y garrapatas</option><option>Vacunas</option><option>Antibióticos</option>
+        <option>Antiparasitarios</option><option>Vitaminas y suplementos</option><option>Alimento</option>
+        <option>Higiene y cuidado</option><option>Accesorios</option><option>Otro</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Precio médico ($)</label><input type="number" id="fPriceMed" placeholder="0.00" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Precio público ($)</label><input type="number" id="fPricePub" placeholder="0.00" step="0.01"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Existencias</label><input type="number" id="fStock" placeholder="0" min="0"></div>
+      <div class="form-group"><label class="form-label">Mínimo stock</label><input type="number" id="fMinStock" placeholder="5" min="0"></div>
+    </div>
+    <button class="save-btn" onclick="saveProduct()"><i class="ti ti-check"></i> Guardar producto</button>
+    <button class="delete-btn" id="deleteBtn" onclick="deleteProduct()" style="display:none"><i class="ti ti-trash"></i> Eliminar producto</button>
+  </div>
+</div>
+
+<!-- Detail modal -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Detalle del producto</span>
+      <button class="close-btn" onclick="closeModal('detailModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="detailContent"></div>
+    <button class="secondary-btn" onclick="editFromDetail()"><i class="ti ti-edit"></i> Editar producto</button>
+  </div>
+</div>
+
+<!-- Scanner modal -->
+<div class="modal-overlay" id="scannerModal">
+  <div class="scanner-modal">
+    <div class="modal-header">
+      <span class="modal-title" id="scannerTitle">Escanear código de barras</span>
+      <button class="close-btn" onclick="closeScanner()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="scan-frame">
+      <video id="scannerVideo" autoplay playsinline muted></video>
+      <div class="scan-overlay"><div class="scan-crosshair"></div></div>
+    </div>
+    <div class="scan-status" id="scanStatus">Apunta la cámara al código de barras</div>
+    <div id="scanResult"></div>
+    <div style="margin-top:16px">
+      <div class="form-group"><label class="form-label">O ingresa el código manualmente</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="manualBarcode" placeholder="Código de barras..." style="font-family:monospace">
+          <button class="scan-inline-btn" onclick="searchBarcode(document.getElementById('manualBarcode').value)">Buscar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script type="module">
+import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from 'https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/+esm';
+
+const CATS=['Todos','Antipulgas y garrapatas','Vacunas','Antibióticos','Antiparasitarios','Vitaminas y suplementos','Alimento','Higiene y cuidado','Accesorios','Otro'];
+let products=JSON.parse(localStorage.getItem('alf_products')||'[]');
+if(!products.length){
+  products=[
+    {id:1,name:'Frontline Plus',brand:'Merial',cat:'Antipulgas y garrapatas',barcode:'7501031311309',priceMed:85,pricePub:140,stock:12,minStock:5,img:''},
+    {id:2,name:'Nobivac DHPPI',brand:'MSD Animal Health',cat:'Vacunas',barcode:'4007221006528',priceMed:55,pricePub:90,stock:3,minStock:5,img:''},
+    {id:3,name:'Amoxicilina 500mg',brand:'Genérico',cat:'Antibióticos',barcode:'7501234567890',priceMed:18,pricePub:32,stock:24,minStock:10,img:''},
+    {id:4,name:'Drontal Plus',brand:'Bayer',cat:'Antiparasitarios',barcode:'4007221032954',priceMed:45,pricePub:70,stock:0,minStock:5,img:''},
+    {id:5,name:'Canikur Pro',brand:'Virbac',cat:'Vitaminas y suplementos',barcode:'3597132091206',priceMed:120,pricePub:180,stock:8,minStock:3,img:''},
+  ];
+  save();
+}
+let activeCat='Todos',searchQ='',showLowStock=false,editId=null,currentDetailId=null,imgData='',scanMode='search';
+
+// ZXing reader — configurado para todos los formatos de código de barras comunes
+const hints = new Map();
+hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+  BarcodeFormat.EAN_13, BarcodeFormat.EAN_8,
+  BarcodeFormat.UPC_A, BarcodeFormat.UPC_E,
+  BarcodeFormat.CODE_128, BarcodeFormat.CODE_39,
+  BarcodeFormat.ITF, BarcodeFormat.QR_CODE,
+]);
+hints.set(DecodeHintType.TRY_HARDER, true);
+const codeReader = new BrowserMultiFormatReader(hints);
+
+function save(){ localStorage.setItem('alf_products',JSON.stringify(products)); }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+function fmt(n){ return '$'+(Number(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+function stockInfo(p){ if(p.stock===0) return ['stock-out','Sin stock']; if(p.stock<=p.minStock) return ['stock-low',`Stock bajo (${p.stock})`]; return ['stock-ok',`${p.stock} uds.`]; }
+function filtered(){ return products.filter(p=>{ const mc=activeCat==='Todos'||p.cat===activeCat; const q=searchQ.toLowerCase(); const mq=!q||p.name.toLowerCase().includes(q)||(p.brand||'').toLowerCase().includes(q)||(p.barcode||'').includes(q); const ml=!showLowStock||p.stock<=p.minStock; return mc&&mq&&ml; }); }
+function renderCats(){ document.getElementById('catList').innerHTML=CATS.map(c=>`<div class="cat-pill${c===activeCat?' active':''}" onclick="setCat('${c}')">${c}</div>`).join(''); }
+function renderStats(){ const low=products.filter(p=>p.stock>0&&p.stock<=p.minStock).length; const out=products.filter(p=>p.stock===0).length; document.getElementById('statsRow').innerHTML=`<div class="stat-card"><div class="stat-num">${products.length}</div><div class="stat-lbl">Productos</div></div><div class="stat-card"><div class="stat-num" style="color:#C87814">${low}</div><div class="stat-lbl">Stock bajo</div></div><div class="stat-card"><div class="stat-num" style="color:#8C2800">${out}</div><div class="stat-lbl">Sin stock</div></div>`; }
+function renderList(){ const list=filtered(); const el=document.getElementById('productList'); if(!list.length){ el.innerHTML=`<div class="empty-state"><i class="ti ti-mood-empty"></i><p>No se encontraron productos</p></div>`; return; } el.innerHTML=list.map(p=>{ const [sc,sl]=stockInfo(p); return `<div class="prod-card" onclick="openDetail(${p.id})"><div class="prod-img">${p.img?`<img src="${p.img}" alt="${p.name}">`:`<i class="ti ti-pill"></i>`}</div><div class="prod-info"><div class="prod-name">${p.name}</div><div class="prod-brand">${p.brand||'Sin marca'}</div>${p.barcode?`<div class="prod-barcode"><i class="ti ti-barcode" style="font-size:12px"></i> ${p.barcode}</div>`:''}<div class="prod-prices"><span class="price-med">Méd: ${fmt(p.priceMed)}</span><div class="price-sep"></div><span class="price-pub">${fmt(p.pricePub)}</span></div><div class="prod-meta"><span class="cat-tag">${p.cat||'Sin categoría'}</span><span class="${sc}">${sl}</span></div></div></div>`; }).join(''); }
+function render(){ renderCats(); renderStats(); renderList(); }
+function setCat(c){ activeCat=c; render(); }
+function toggleLowStock(){ showLowStock=!showLowStock; document.getElementById('lowStockBtn').classList.toggle('active',showLowStock); render(); }
+document.getElementById('searchInput').addEventListener('input',e=>{ searchQ=e.target.value; renderList(); });
+
+function openForm(id){
+  editId=id||null; imgData='';
+  const prev=document.getElementById('imgPreview'),icon=document.getElementById('imgIcon'),lbl=document.getElementById('imgLabel');
+  prev.style.display='none'; icon.style.display='block'; lbl.textContent='Toca para agregar foto';
+  document.getElementById('formTitle').textContent=id?'Editar producto':'Nuevo producto';
+  document.getElementById('deleteBtn').style.display=id?'flex':'none';
+  if(id){
+    const p=products.find(x=>x.id===id);
+    document.getElementById('fName').value=p.name;
+    document.getElementById('fBrand').value=p.brand||'';
+    document.getElementById('fCat').value=p.cat||'';
+    document.getElementById('fBarcode').value=p.barcode||'';
+    document.getElementById('fPriceMed').value=p.priceMed||'';
+    document.getElementById('fPricePub').value=p.pricePub||'';
+    document.getElementById('fStock').value=p.stock||0;
+    document.getElementById('fMinStock').value=p.minStock||5;
+    if(p.img){ imgData=p.img; prev.src=p.img; prev.style.display='block'; icon.style.display='none'; lbl.textContent='Cambiar foto'; }
+  } else {
+    ['fName','fBrand','fBarcode','fPriceMed','fPricePub'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('fCat').value='';
+    document.getElementById('fStock').value='';
+    document.getElementById('fMinStock').value='';
+  }
+  document.getElementById('formModal').classList.add('open');
+}
+window.openForm = openForm;
+
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+window.closeModal = closeModal;
+
+function handleImg(input){ const file=input.files[0]; if(!file) return; const r=new FileReader(); r.onload=e=>{ imgData=e.target.result; const prev=document.getElementById('imgPreview'); prev.src=imgData; prev.style.display='block'; document.getElementById('imgIcon').style.display='none'; document.getElementById('imgLabel').textContent='Cambiar foto'; }; r.readAsDataURL(file); }
+window.handleImg = handleImg;
+
+function saveProduct(){ const name=document.getElementById('fName').value.trim(); if(!name){ alert('El nombre es obligatorio'); return; } const data={ name, brand:document.getElementById('fBrand').value.trim(), cat:document.getElementById('fCat').value, barcode:document.getElementById('fBarcode').value.trim(), priceMed:parseFloat(document.getElementById('fPriceMed').value)||0, pricePub:parseFloat(document.getElementById('fPricePub').value)||0, stock:parseInt(document.getElementById('fStock').value)||0, minStock:parseInt(document.getElementById('fMinStock').value)||5, img:imgData }; if(editId){ const i=products.findIndex(p=>p.id===editId); products[i]={...products[i],...data}; } else { data.id=Date.now(); products.push(data); } save(); render(); closeModal('formModal'); showToast(editId?'Producto actualizado':'Producto guardado'); }
+window.saveProduct = saveProduct;
+
+function deleteProduct(){ if(!confirm('¿Eliminar este producto?')) return; products=products.filter(p=>p.id!==editId); save(); render(); closeModal('formModal'); showToast('Producto eliminado'); }
+window.deleteProduct = deleteProduct;
+
+function openDetail(id){
+  currentDetailId=id;
+  const p=products.find(x=>x.id===id);
+  const [sc,sl]=stockInfo(p);
+  const imgEl=p.img?`<img src="${p.img}" class="detail-img" alt="${p.name}">`:`<div class="detail-img-ph"><i class="ti ti-pill"></i></div>`;
+  document.getElementById('detailContent').innerHTML=`<div class="detail-header">${imgEl}<div style="font-size:18px;font-weight:600;color:#3A1400">${p.name}</div><div style="font-size:13px;color:#A06030;margin-top:3px">${p.brand||'Sin marca'}</div>${p.barcode?`<div style="font-size:12px;color:#C49060;margin-top:4px;font-family:monospace"><i class="ti ti-barcode"></i> ${p.barcode}</div>`:''}<div style="margin-top:8px"><span class="cat-tag" style="font-size:12px;padding:4px 10px">${p.cat||'Sin categoría'}</span></div></div><div class="detail-rows"><div class="detail-row"><span class="detail-row-label"><i class="ti ti-stethoscope"></i>Precio médico</span><span class="detail-row-val price-hl">${fmt(p.priceMed)}</span></div><div class="detail-row"><span class="detail-row-label"><i class="ti ti-tag"></i>Precio público</span><span class="detail-row-val" style="font-size:16px">${fmt(p.pricePub)}</span></div><div class="detail-row"><span class="detail-row-label"><i class="ti ti-package"></i>Existencias</span><span class="detail-row-val ${sc}">${sl}</span></div><div class="detail-row"><span class="detail-row-label"><i class="ti ti-alert-circle"></i>Mínimo stock</span><span class="detail-row-val">${p.minStock} uds.</span></div></div>`;
+  document.getElementById('detailModal').classList.add('open');
+}
+window.openDetail = openDetail;
+
+function editFromDetail(){ closeModal('detailModal'); openForm(currentDetailId); }
+window.editFromDetail = editFromDetail;
+
+function exportExcel(){ if(!products.length){ showToast('No hay productos para exportar'); return; } const ws_data=[['Nombre','Marca','Código de barras','Categoría','Precio médico','Precio público','Existencias','Mínimo stock','Estado']]; products.forEach(p=>{ let e='OK'; if(p.stock===0) e='Sin stock'; else if(p.stock<=p.minStock) e='Stock bajo'; ws_data.push([p.name,p.brand||'',p.barcode||'',p.cat||'',p.priceMed,p.pricePub,p.stock,p.minStock,e]); }); const wb=XLSX.utils.book_new(); const ws=XLSX.utils.aoa_to_sheet(ws_data); ws['!cols']=[{wch:28},{wch:18},{wch:18},{wch:24},{wch:14},{wch:14},{wch:12},{wch:12},{wch:12}]; XLSX.utils.book_append_sheet(wb,ws,'Inventario'); XLSX.writeFile(wb,`catalogo_alf_${new Date().toLocaleDateString('es-MX').replace(/\//g,'-')}.xlsx`); showToast('Catálogo exportado correctamente'); }
+window.exportExcel = exportExcel;
+
+// ── SCANNER con ZXing ──
+async function openScanner(){
+  scanMode='search';
+  document.getElementById('scannerTitle').textContent='Buscar por código de barras';
+  document.getElementById('scanResult').innerHTML='';
+  document.getElementById('manualBarcode').value='';
+  document.getElementById('scannerModal').classList.add('open');
+  await startZXing();
+}
+window.openScanner = openScanner;
+
+async function openScannerForForm(){
+  scanMode='form';
+  document.getElementById('scannerTitle').textContent='Escanear para el formulario';
+  document.getElementById('scanResult').innerHTML='';
+  document.getElementById('manualBarcode').value='';
+  document.getElementById('scannerModal').classList.add('open');
+  await startZXing();
+}
+window.openScannerForForm = openScannerForForm;
+
+async function startZXing(){
+  const statusEl = document.getElementById('scanStatus');
+  statusEl.textContent = 'Iniciando cámara...';
+  const video = document.getElementById('scannerVideo');
+  try {
+    // Obtener lista de cámaras y preferir la trasera
+    const devices = await codeReader.listVideoInputDevices();
+    const backCamera = devices.find(d =>
+      d.label.toLowerCase().includes('back') ||
+      d.label.toLowerCase().includes('rear') ||
+      d.label.toLowerCase().includes('trasera') ||
+      d.label.toLowerCase().includes('environment')
+    ) || devices[devices.length - 1]; // última cámara suele ser la trasera en Android
+
+    statusEl.textContent = 'Apunta al código de barras...';
+
+    await codeReader.decodeFromVideoDevice(
+      backCamera ? backCamera.deviceId : undefined,
+      video,
+      (result, err) => {
+        if (result) {
+          codeReader.reset();
+          handleBarcode(result.getText());
+        }
+        // err es normal mientras no detecta, no hacer nada
+      }
+    );
+  } catch(e) {
+    statusEl.textContent = 'No se pudo acceder a la cámara. Usa el campo manual.';
+    console.error(e);
+  }
+}
+
+function closeScanner(){
+  codeReader.reset();
+  closeModal('scannerModal');
+}
+window.closeScanner = closeScanner;
+
+function searchBarcode(code){ if(!code) return; handleBarcode(code.trim()); }
+window.searchBarcode = searchBarcode;
+
+function handleBarcode(code){
+  document.getElementById('scanStatus').textContent=`Código: ${code}`;
+  if(scanMode==='form'){
+    document.getElementById('fBarcode').value=code;
+    closeScanner();
+    showToast('Código ingresado: '+code);
+    return;
+  }
+  const p=products.find(x=>x.barcode===code);
+  if(p){
+    const [sc,sl]=stockInfo(p);
+    document.getElementById('scanResult').innerHTML=`<div class="scan-found"><div class="scan-found-name">${p.name}</div><div class="scan-found-meta">${p.brand||'Sin marca'} · ${p.cat||''}</div><div style="display:flex;gap:10px;margin-top:8px;align-items:center"><span style="font-size:15px;font-weight:600;color:#782800">${fmt(p.pricePub)}</span><span class="${sc}" style="font-size:12px">${sl}</span></div><button class="save-btn" style="margin-top:10px;padding:10px" onclick="closeScanner();openDetail(${p.id})"><i class="ti ti-eye"></i> Ver detalle completo</button></div>`;
+  } else {
+    document.getElementById('scanResult').innerHTML=`<div style="text-align:center;padding:16px;color:#A06030"><i class="ti ti-search-off" style="font-size:32px;display:block;margin-bottom:8px"></i><div style="font-size:14px">Código <strong>${code}</strong> no encontrado</div><button class="save-btn" style="margin-top:12px;padding:10px" onclick="closeScanner();openForm();setTimeout(()=>document.getElementById('fBarcode').value='${code}',100)"><i class="ti ti-plus"></i> Crear producto con este código</button></div>`;
+  }
+}
+
+// Exponer funciones globales para onclick en HTML
+window.setCat = (c)=>{ activeCat=c; render(); };
+window.toggleLowStock = ()=>{ showLowStock=!showLowStock; document.getElementById('lowStockBtn').classList.toggle('active',showLowStock); render(); };
+
+render();
+</script>
+</body>
+</html>
